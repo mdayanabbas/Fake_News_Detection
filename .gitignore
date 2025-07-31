@@ -1,0 +1,14 @@
+logi.joblib
+naive.joblib
+nb_model.pkl
+random_forest.joblib
+svm.joblib
+vectorizer_model.pkl
+app_debug.log
+dense.pkl
+distilbert_tokenizer/
+model2.pkl
+tfidf_vectorizer.pkl
+word2vec_model.bin
+# Ignore model files and logs
+*.log

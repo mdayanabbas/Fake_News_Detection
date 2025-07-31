@@ -1,104 +1,227 @@
-<!DOCTYPE HTML>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
- <meta charset="utf-8">
- <meta http-equiv="X-UA-Compatible" content="IE=edge">
- <title>Fake News Prediction</title>
- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
-  integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
-  integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
-  crossorigin="anonymous"></script>
- <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fake News Detector with LIME Explanation</title>
+    <style>
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1c1f2b 0%, #1e2a38 40%, #2c5364 100%);
+    color: #fff;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+
+
+        .container {
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            margin: 20px;
+            position: relative;
+            z-index: 2;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2.5rem;
+            color: #ffdd57;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            color: #333;
+        }
+        select, input[type="submit"] {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 8px;
+            border: none;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        select {
+            background-color: #ffdd57;
+            color: #333;
+        }
+        input[type="submit"] {
+            background-color: #ff4b5c;
+            color: white;
+        }
+        input[type="submit"]:hover {
+            background-color: #d43d4d;
+        }
+        .probabilities {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        .probability {
+            padding: 15px;
+            border-radius: 10px;
+            background-color: #fff;
+            color: #333;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 45%;
+            text-align: center;
+        }
+        .probability h3 {
+            margin: 0 0 10px;
+            font-size: 1.5rem;
+            color: #ff4b5c;
+        }
+        .lime-explanation {
+            background-color: #fff;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 10px;
+            color: #333;
+            overflow-x: auto;
+        }
+        .lime-explanation h3 {
+            color: #ffdd57;
+        }
+        .model-badge {
+            display: inline-block;
+            background-color: #ffdd57;
+            color: #333;
+            padding: 5px 10px;
+            border-radius: 30px;
+            font-weight: bold;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        .model-badge.transformer {
+            background-color: #ff4b5c;
+            color: white;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+            flex-direction: column;
+            align-items: center;
+        }
+        .drift-car {
+            width: 150px;
+            margin-bottom: 10px;
+            animation: carDrift 2s infinite alternate ease-in-out;
+        }
+        @keyframes carDrift {
+            0% {
+                transform: translateX(-20px) rotate(-5deg);
+            }
+            100% {
+                transform: translateX(20px) rotate(5deg);
+            }
+        }
+
+        /* Drifting car animation */
+        .drifting-car {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 120px;
+            animation: drift 6s infinite ease-in-out;
+            opacity: 0.9;
+            z-index: 1;
+            pointer-events: none;
+        }
+        @keyframes drift {
+            0% { transform: translateX(0px) rotate(0deg); }
+            25% { transform: translateX(-30px) rotate(-5deg); }
+            50% { transform: translateX(0px) rotate(0deg); }
+            75% { transform: translateX(30px) rotate(5deg); }
+            100% { transform: translateX(0px) rotate(0deg); }
+        }
+    </style>
 </head>
-
-  <style>
-    body {
-      background-image: url('https://media.istockphoto.com/id/1303753990/photo/fake-news-coming-out-from-yellow-megaphone-on-blue-background.webp?b=1&s=170667a&w=0&k=20&c=_scwRje-UZ8xM1NqeMkafhICKzbay1b8Ci1BtpE9tjI=');
-      background-size: cover;
-      background-repeat: no-repeat;
-      background-position: center center;
-      background-attachment: fixed;
-      display: flex;
-      flex-direction: column; /* New: Stack elements in a column */
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      background-color: #f7f7f7;
-    }
-
-    .button-container {
-      text-align: center;
-      margin-bottom: 20px; /* New: Add margin between button and other elements */
-    }
-
-    .awesome-button {
-      background-color: #4CAF50;
-      color: #fff;
-      padding: 12px 24px;
-      font-size: 16px;
-      font-weight: bold;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background-color 0.3s ease, transform 0.3s ease;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    .awesome-button:hover {
-      background-color: #45a049;
-      transform: scale(1.05);
-    }
-
-    h1 {
-      font-size: 36px;
-      margin-bottom: 10px; /* New: Add margin between heading and paragraph */
-    }
-
-    p {
-      font-size: 18px;
-    }
-  </style>
-
-
-
 <body>
- <h1 style="font-size: 50px; color: #fa071c; text-align: center; text-transform: uppercase;">Check whether the NEWS is Reliable or not</h1>
+    <div class="container">
+        <h1>Fake News Detector</h1>
 
- <div class='container'>
-  <form action="/" method="POST">
-   <div class="col-three-forth text-center col-md-offset-2">
-    <div class="form-group">
+        <div>
+            <h3>Available Models:</h3>
+            <div class="model-badge">Logistic Regression</div>
+            <div class="model-badge">Random Forest</div>
+            <div class="model-badge">Naive Bayes</div>
+            <div class="model-badge">SVM</div>
+            <div class="model-badge">Dense Model</div>
+            <div class="model-badge transformer">DistilBERT</div>
+        </div>
 
-<textarea name="text" style="font-size: 16px; font-family: 'Roboto', sans-serif; color: #333; background-color: #f2f2f2; border: 10px solid #f2f2f2; padding: 10px; width: 700px; height: 200px;"></textarea>
-<br><br>
-          <button class="awesome-button" type="submit">Predict</button>
+        <form method="POST" id="prediction-form">
+            <textarea name="text" rows="6" placeholder="Enter your text here...">{{ text }}</textarea>
+            <select name="model_choice">
+                <option value="Logistic Regression" {% if model_choice == 'Logistic Regression' %} selected {% endif %}>Logistic Regression</option>
+                <option value="Random Forest" {% if model_choice == 'Random Forest' %} selected {% endif %}>Random Forest</option>
+                <option value="Naive Bayes" {% if model_choice == 'Naive Bayes' %} selected {% endif %}>Naive Bayes</option>
+                <option value="SVM" {% if model_choice == 'SVM' %} selected {% endif %}>SVM</option>
+                <option value="Dense Model" {% if model_choice == 'Dense Model' %} selected {% endif %}>Dense Model</option>
+                <option value="DistilBERT" {% if model_choice == 'DistilBERT' %} selected {% endif %}>DistilBERT (Transformer)</option>
+            </select>
+            <input type="submit" value="Predict">
+        </form>
 
+        <div class="loading" id="loading">
+            <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZHM1NHF0OGE4OXhsNDVjcjZxODc2ZHhmaWo0YXhicGRsYzZqZDUyayZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/jtXxlGob7X9wJlOfCc/giphy.gif" class="drift-car" alt="Drifting Car">
+            <p>Drifting into the results... This may take a moment, especially for transformer models.</p>
+        </div>
+
+        {% if result %}
+        <div>
+            <h2>Prediction Results</h2>
+            <p>Model Used: <strong>{{ model_choice }}</strong></p>
+            <p>Prediction: <strong>{{ result }}</strong></p>
+
+            {% if probabilities %}
+            <div class="probabilities">
+                <div class="probability">
+                    <h3>FAKE</h3>
+                    <p>{{ probabilities['FAKE'] }}%</p>
+                </div>
+                <div class="probability">
+                    <h3>REAL</h3>
+                    <p>{{ probabilities['REAL'] }}%</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if explanation %}
+        <div class="lime-explanation">
+            <h3>LIME Explanation</h3>
+            <div>{{ explanation | safe }}</div>
+        </div>
+        {% endif %}
     </div>
-   </div>
-  </form>
- </div>
- <br><br><br>
- {% if result %}
- <p style="text-align:center"><strong>Prediction : {{result}}</strong></p>
- {% endif %}
-<script>
-     function growTextarea (i,elem) {
-    var elem = $(elem);
-    var resizeTextarea = function( elem ) {
-        var scrollLeft = window.pageXOffset || (document.documentElement || document.body.parentNode || document.body).scrollLeft;
-        var scrollTop  = window.pageYOffset || (document.documentElement || document.body.parentNode || document.body).scrollTop;
-        elem.css('height', 'auto').css('height', elem.prop('scrollHeight') );
-          window.scrollTo(scrollLeft, scrollTop);
-      };
-      elem.on('input', function() {
-        resizeTextarea( $(this) );
-      });
-      resizeTextarea( $(elem) );
-  }
 
-  $('.jTextarea').each(growTextarea);
-</script>
+    <!-- Drifting Car Image -->
+    <!-- <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExaXp4Mm0wYTd2Znl6NW1iMHFoNzIwbHRiMnlwc2QxenV5dnllZHhweSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/69iv77x8e5NMA/giphy.gif" class="drifting-car" alt="Drifting Car"> -->
+
+    <script>
+        // Show loading spinner when form is submitted
+        document.getElementById('prediction-form').addEventListener('submit', function() {
+            document.getElementById('loading').style.display = 'flex';
+        });
+    </script>
 </body>
 </html>
